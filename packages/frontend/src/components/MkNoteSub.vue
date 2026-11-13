@@ -7,10 +7,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 <div v-if="note == null" :class="$style.deleted">
 	{{ i18n.ts.deletedNote }}
 </div>
-<div v-else-if="!muted" :class="[$style.root, { [$style.children]: depth > 1 }]">
+<div v-else-if="!muted" :class="[$style.root, { [$style.children]: depth > 1, [$style.replyItem]: detail }]" :data-note-connected="connected ? '' : undefined">
 	<div :class="$style.main">
 		<div v-if="note.channel" :class="$style.colorBar" :style="{ background: note.channel.color }"></div>
-		<MkAvatar :class="$style.avatar" :user="note.user" link preview/>
+		<div :class="$style.avatarContainer">
+			<MkAvatar :class="$style.avatar" :user="note.user" link preview/>
+			<div v-if="replies.length > 0" :class="$style.threadLine" aria-hidden="true"></div>
+		</div>
 		<div :class="$style.body">
 			<MkNoteHeader :class="$style.header" :note="note" :mini="true"/>
 			<div>
@@ -25,7 +28,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		</div>
 	</div>
 	<template v-if="depth < 5">
-		<MkNoteSub v-for="reply in replies" :key="reply.id" :note="reply" :class="$style.reply" :detail="true" :depth="depth + 1"/>
+		<MkNoteSub v-for="reply in replies" :key="reply.id" :note="reply" :class="[$style.reply, { [$style.single]: replies.length === 1 }]" :detail="true" :depth="depth + 1"/>
 	</template>
 	<div v-else :class="$style.more">
 		<MkA class="_link" :to="notePage(note)">{{ i18n.ts.continueThread }} <i class="ti ti-chevron-double-right"></i></MkA>
@@ -58,6 +61,7 @@ import { checkWordMute } from '@/utility/check-word-mute.js';
 const props = withDefaults(defineProps<{
 	note: Misskey.entities.Note | null;
 	detail?: boolean;
+	connected?: boolean;
 
 	// how many notes are in between this one and the note being viewed in detail
 	depth?: number;
@@ -82,18 +86,49 @@ if (props.detail && props.note) {
 
 <style lang="scss" module>
 .root {
-	padding: 16px 32px;
-	font-size: 0.9em;
+	--MI-noteSubAvatar: 48px;
+	--MI-noteSubInsetX: 32px;
+	--MI-noteSubInsetY: 18px;
+	--MI-noteSubAvatarGap: 14px;
+	--MI-noteSubThread: var(--MI_THEME-thread, var(--MI_THEME-divider));
+	padding: var(--MI-noteSubInsetY) var(--MI-noteSubInsetX);
 	position: relative;
 
 	&.children {
-		padding: 10px 0 0 16px;
-		font-size: 1em;
+		padding: 10px 0 0 8px;
 	}
+
+	&.replyItem {
+		// [custom] Sharkey uses smaller avatars for the detail-page reply list.
+		--MI-noteSubAvatar: clamp(26px, -8.6154px + 7.6923cqi, 36px);
+	}
+}
+
+.root[data-note-connected]::after {
+	content: '';
+	position: absolute;
+	left: calc(var(--MI-noteSubInsetX) + .5 * var(--MI-noteSubAvatar));
+	top: calc(var(--MI-noteSubInsetY) + var(--MI-noteSubAvatar));
+	bottom: calc(-1 * var(--MI-noteSubConnectionGap, var(--MI-noteSubInsetY)));
+	border-left: 2px solid var(--MI-noteSubThread);
+	pointer-events: none;
 }
 
 .main {
 	display: flex;
+}
+
+.avatarContainer {
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+	margin-right: var(--MI-noteSubAvatarGap);
+}
+
+.threadLine {
+	flex-grow: 1;
+	margin-left: calc(.5 * var(--MI-noteSubAvatar));
+	border-left: 2px solid var(--MI-noteSubThread);
 }
 
 .colorBar {
@@ -109,10 +144,9 @@ if (props.detail && props.note) {
 .avatar {
 	flex-shrink: 0;
 	display: block;
-	margin: 0 8px 0 0;
-	width: 38px;
-	height: 38px;
-	border-radius: 8px;
+	width: var(--MI-noteSubAvatar);
+	height: var(--MI-noteSubAvatar);
+	border-radius: var(--MI-noteQuoteRadius);
 }
 
 .body {
@@ -138,21 +172,69 @@ if (props.detail && props.note) {
 }
 
 .reply, .more {
-	border-left: solid 0.5px var(--MI_THEME-divider);
 	margin-top: 10px;
+}
+
+.reply.root {
+	margin-left: calc(.5 * var(--MI-noteSubAvatar));
+
+	&:not(:last-child) {
+		border-left: 2px solid var(--MI-noteSubThread);
+	}
+
+	&::before {
+		content: '';
+		position: absolute;
+		left: -2px;
+		top: -10px;
+		height: calc(20px + .5 * var(--MI-noteSubAvatar));
+		width: 15px;
+		border-left: 2px solid var(--MI-noteSubThread);
+		border-bottom: 2px solid var(--MI-noteSubThread);
+		border-bottom-left-radius: 15px;
+		pointer-events: none;
+	}
+
+	&.single {
+		margin-left: 0;
+		padding-left: 0;
+
+		&::before {
+			left: calc(.5 * var(--MI-noteSubAvatar));
+			width: 0;
+			border-bottom: 0;
+		}
+	}
 }
 
 .more {
 	padding: 10px 0 0 16px;
 }
 
+@container (max-width: 580px) {
+	.root {
+		--MI-noteSubInsetX: 26px;
+		--MI-noteSubAvatar: 46px;
+	}
+}
+
+@container (max-width: 500px) {
+	.root {
+		--MI-noteSubInsetX: 22px;
+	}
+}
+
+@container (max-width: 480px) {
+	.root {
+		--MI-noteSubInsetX: 16px;
+		--MI-noteSubInsetY: 14px;
+	}
+}
+
 @container (max-width: 450px) {
 	.root {
-		padding: 14px 16px;
-
-		&.children {
-			padding: 10px 0 0 8px;
-		}
+		--MI-noteSubAvatar: 44px;
+		--MI-noteSubAvatarGap: 10px;
 	}
 }
 

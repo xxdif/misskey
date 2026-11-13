@@ -61,9 +61,20 @@ const notesPaginator = markRaw(new Paginator('users/notes', {
 </script>
 
 <style lang="scss" module>
+// [custom] Match the profile timeline tabs while retaining the standalone page's pagination.
 .tab {
-	padding: calc(var(--MI-margin) / 2) 0;
-	background: var(--MI_THEME-bg);
+	margin-bottom: 2.5px;
+	padding: 2.5px 0;
+	background: color-mix(in srgb, var(--MI_THEME-bg) 65%, transparent);
+	backdrop-filter: var(--MI-blur, blur(15px));
+	border-radius: var(--MI-radius);
+	overflow-x: auto;
+
+	> button {
+		border-radius: var(--MI-radius);
+		margin-inline: 0.4rem;
+		white-space: nowrap;
+	}
 }
 
 .tl {

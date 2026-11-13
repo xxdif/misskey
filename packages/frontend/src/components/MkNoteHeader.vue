@@ -4,7 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-<header :class="$style.root">
+<header :class="[$style.root, { [$style.card]: card }]">
 	<div v-if="mock" :class="$style.name">
 		<MkUserName :user="note.user"/>
 	</div>
@@ -31,6 +31,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<span v-if="note.localOnly" style="margin-left: 0.5em;" :title="i18n.ts._visibility['disableFederation']"><i class="ti ti-rocket-off"></i></span>
 		<span v-if="note.channel" style="margin-left: 0.5em;" :title="note.channel.name"><i class="ti ti-device-tv"></i></span>
 	</div>
+	<div v-if="card && $slots.metadata" :class="$style.metadata"><slot name="metadata"></slot></div>
 </header>
 </template>
 
@@ -44,6 +45,7 @@ import { DI } from '@/di.js';
 
 defineProps<{
 	note: Misskey.entities.Note;
+	card?: boolean;
 }>();
 
 const mock = inject(DI.mock, false);
@@ -54,6 +56,64 @@ const mock = inject(DI.mock, false);
 	display: flex;
 	align-items: baseline;
 	white-space: nowrap;
+}
+
+// [custom] Opt in only for timeline cards; reply summaries keep the upstream header.
+.card {
+	display: grid;
+	grid-template-columns: minmax(0, max-content) auto auto minmax(0, 1fr) minmax(0, 40%);
+	align-items: center;
+
+	.name {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	.isBot {
+		grid-column: 2;
+		grid-row: 1;
+	}
+
+	.badgeRoles {
+		grid-column: 3;
+		grid-row: 1;
+		max-width: 3em;
+		overflow: hidden;
+	}
+
+	.username {
+		grid-column: 1 / 5;
+		grid-row: 2;
+		font-size: 0.95em;
+	}
+
+	.info {
+		display: flex;
+		align-items: center;
+		grid-column: 5;
+		grid-row: 1;
+		padding-left: 10px;
+		max-width: 100%;
+		box-sizing: border-box;
+
+		> :first-child {
+			min-width: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		> span {
+			flex-shrink: 0;
+		}
+	}
+}
+
+.metadata {
+	grid-column: 5;
+	grid-row: 2;
+	min-width: 0;
+	justify-self: end;
+	max-width: 100%;
 }
 
 .name {

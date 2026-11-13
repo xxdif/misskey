@@ -41,11 +41,16 @@ const showContent = ref(false);
 </script>
 
 <style lang="scss" module>
+// [custom] Match quoted-note typography, avatar spacing and responsive sizes to the surrounding card.
 .root {
 	display: flex;
 	margin: 0;
 	padding: 0;
 	font-size: 0.95em;
+
+	&:hover, &:focus-within {
+		background: var(--MI_THEME-panelHighlight);
+	}
 }
 
 .avatar {
@@ -54,7 +59,7 @@ const showContent = ref(false);
 	margin: 0 10px 0 0;
 	width: 34px;
 	height: 34px;
-	border-radius: 8px;
+	border-radius: var(--MI-noteQuoteRadius);
 
 	&.useSticky {
 		position: sticky !important;
@@ -77,12 +82,14 @@ const showContent = ref(false);
 	margin: 0;
 	padding: 0;
 	overflow-wrap: break-word;
+	overflow: clip;
 }
 
 .text {
 	cursor: default;
 	margin: 0;
 	padding: 0;
+	overflow: clip;
 }
 
 @container (min-width: 250px) {

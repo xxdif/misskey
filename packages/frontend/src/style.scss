@@ -8,6 +8,7 @@
 
 :root {
 	--MI-radius: 12px;
+	--MI-noteQuoteRadius: 5px;
 	--MI-marginFull: 16px;
 	--MI-marginHalf: 10px;
 
@@ -50,7 +51,8 @@ html {
 	}
 
 	&.useSystemFont {
-		font-family: system-ui;
+		// [custom] Native Latin UI fonts with explicit Chinese and emoji fallbacks.
+		font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji";
 	}
 
 	&:not(.forceSelectableAll) {

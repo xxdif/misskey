@@ -4,10 +4,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-<MkContainer>
+<!-- [custom] Keep compact profiles collapsed and fetch files only when the body becomes visible. -->
+<MkContainer foldable :expanded="!collapsed" :maxHeight="300">
 	<template #icon><i class="ti ti-photo"></i></template>
 	<template #header>{{ i18n.ts.files }}</template>
-	<div :class="$style.root">
+	<div v-appear="fetchNotes" :class="$style.root">
 		<MkLoading v-if="fetching"/>
 		<div v-if="!fetching && notes.length > 0" class="_gaps_s">
 			<div :class="$style.stream">
@@ -21,7 +22,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { onBeforeUnmount, ref } from 'vue';
 import * as Misskey from 'misskey-js';
 import { misskeyApi } from '@/utility/misskey-api.js';
 import MkButton from '@/components/MkButton.vue';
@@ -29,9 +30,12 @@ import MkContainer from '@/components/MkContainer.vue';
 import { i18n } from '@/i18n.js';
 import MkNoteMediaGrid from '@/components/MkNoteMediaGrid.vue';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
 	user: Misskey.entities.UserDetailed;
-}>();
+	collapsed?: boolean;
+}>(), {
+	collapsed: false,
+});
 
 const emit = defineEmits<{
 	(ev: 'showMore'): void;
@@ -39,8 +43,16 @@ const emit = defineEmits<{
 
 const fetching = ref(true);
 const notes = ref<Misskey.entities.Note[]>([]);
+// [custom] Request once, ignoring repeated or queued visibility callbacks after unmount.
+let canFetch = true;
 
-onMounted(() => {
+onBeforeUnmount(() => {
+	canFetch = false;
+});
+
+function fetchNotes() {
+	if (!canFetch) return;
+	canFetch = false;
 	misskeyApi('users/notes', {
 		userId: props.user.id,
 		withFiles: true,
@@ -49,7 +61,7 @@ onMounted(() => {
 		notes.value = _notes;
 		fetching.value = false;
 	});
-});
+}
 </script>
 
 <style lang="scss" module>

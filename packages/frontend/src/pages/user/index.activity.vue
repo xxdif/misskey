@@ -4,7 +4,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-<MkContainer>
+<!-- [custom] Keep compact profiles collapsed without mounting a hidden chart. -->
+<MkContainer foldable :expanded="!collapsed">
 	<template #icon><i class="ti ti-chart-line"></i></template>
 	<template #header>{{ i18n.ts.activity }}</template>
 	<template #func="{ buttonStyleClass }">
@@ -14,7 +15,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 	</template>
 
 	<div style="padding: 8px;">
-		<MkChart :src="chartSrc" :args="{ user, withoutAll: true }" span="day" :limit="limit" :bar="true" :stacked="true" :detailed="false" :aspectRatio="5"/>
+		<MkLazy>
+			<MkChart :src="chartSrc" :args="{ user, withoutAll: true }" span="day" :limit="limit" :bar="true" :stacked="true" :detailed="false" :aspectRatio="5"/>
+		</MkLazy>
 	</div>
 </MkContainer>
 </template>
@@ -30,8 +33,10 @@ import { i18n } from '@/i18n.js';
 const props = withDefaults(defineProps<{
 	user: Misskey.entities.User;
 	limit?: number;
+	collapsed?: boolean;
 }>(), {
 	limit: 50,
+	collapsed: false,
 });
 
 const chartSrc = ref<'per-user-notes' | 'per-user-pv'>('per-user-notes');

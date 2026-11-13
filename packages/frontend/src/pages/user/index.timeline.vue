@@ -9,6 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<MkTab
 			v-model="tab"
 			:tabs="[
+				{ key: 'pinned', label: i18n.ts.pinned },
 				{ key: 'featured', label: i18n.ts.featured },
 				{ key: 'notes', label: i18n.ts.notes },
 				{ key: 'all', label: i18n.ts.all },
@@ -18,7 +19,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 		>
 		</MkTab>
 	</template>
-	<MkNotesTimeline v-if="tab === 'featured'" :noGap="true" :paginator="featuredPaginator" :pullToRefresh="false" :class="$style.tl"/>
+	<div v-if="tab === 'pinned'" class="_panel" :class="[$style.tl, $style.pinnedPanel]">
+		<MkResult v-if="user.pinnedNotes.length === 0" type="empty" :text="i18n.ts.noNotes"/>
+		<MkNote v-for="note in user.pinnedNotes" :key="note.id" :note="note" pinned :class="$style.pinnedNote"/>
+	</div>
+	<MkNotesTimeline v-else-if="tab === 'featured'" :noGap="true" :paginator="featuredPaginator" :pullToRefresh="false" :class="$style.tl"/>
 	<MkNotesTimeline v-else :noGap="true" :paginator="notesPaginator" :pullToRefresh="false" :class="$style.tl"/>
 </MkStickyContainer>
 </template>
@@ -27,6 +32,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 import { ref, computed, markRaw } from 'vue';
 import * as Misskey from 'misskey-js';
 import MkNotesTimeline from '@/components/MkNotesTimeline.vue';
+import MkNote from '@/components/MkNote.vue';
 import MkTab from '@/components/MkTab.vue';
 import { i18n } from '@/i18n.js';
 import { Paginator } from '@/utility/paginator.js';
@@ -35,7 +41,9 @@ const props = defineProps<{
 	user: Misskey.entities.UserDetailed;
 }>();
 
-const tab = ref<'featured' | 'notes' | 'all' | 'files'>('all');
+const tab = ref<'pinned' | 'featured' | 'notes' | 'all' | 'files'>(props.user.pinnedNotes.length > 0 ? 'pinned' : 'notes');
+// [custom] Refreshing profile fields must not retrigger pagination for the same user.
+const userId = computed(() => props.user.id);
 
 const featuredPaginator = markRaw(new Paginator('users/featured-notes', {
 	limit: 10,
@@ -47,7 +55,7 @@ const featuredPaginator = markRaw(new Paginator('users/featured-notes', {
 const notesPaginator = markRaw(new Paginator('users/notes', {
 	limit: 10,
 	computedParams: computed(() => ({
-		userId: props.user.id,
+		userId: userId.value,
 		withRenotes: tab.value === 'all',
 		withReplies: tab.value === 'all',
 		withChannelNotes: tab.value === 'all',
@@ -56,19 +64,41 @@ const notesPaginator = markRaw(new Paginator('users/notes', {
 }));
 
 defineExpose({
-	reload: () => (tab.value === 'featured' ? featuredPaginator : notesPaginator).reload(),
+	reload: async () => {
+		// Pinned notes refresh with the parent user's profile.
+		if (tab.value === 'pinned') return;
+		await (tab.value === 'featured' ? featuredPaginator : notesPaginator).reload();
+	},
 });
 </script>
 
 <style lang="scss" module>
 .tab {
-	padding: calc(var(--MI-margin) / 2) 0;
-	background: var(--MI_THEME-bg);
+	margin-bottom: 2.5px;
+	padding: 2.5px 0;
+	background: color-mix(in srgb, var(--MI_THEME-bg) 65%, transparent);
+	backdrop-filter: var(--MI-blur, blur(15px));
+	border-radius: var(--MI-radius);
+	overflow-x: auto;
+
+	> button {
+		border-radius: var(--MI-radius);
+		margin-inline: 0.4rem;
+		white-space: nowrap;
+	}
 }
 
 .tl {
 	background: var(--MI_THEME-bg);
 	border-radius: var(--MI-radius);
 	overflow: clip;
+}
+
+.pinnedPanel {
+	background: var(--MI_THEME-panel);
+}
+
+.pinnedNote:not(:last-child) {
+	border-bottom: solid 0.5px var(--MI_THEME-divider);
 }
 </style>

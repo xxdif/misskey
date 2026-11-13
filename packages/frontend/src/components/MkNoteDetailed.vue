@@ -15,9 +15,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<div v-if="!conversationLoaded" style="padding: 16px">
 			<MkButton style="margin: 0 auto;" primary rounded @click="loadConversation">{{ i18n.ts.loadConversation }}</MkButton>
 		</div>
-		<MkNoteSub v-for="note in conversation" :key="note.id" :class="$style.replyToMore" :note="note"/>
+		<MkNoteSub v-for="note in conversation" :key="note.id" :note="note" :class="$style.contextNote" connected/>
 	</div>
-	<MkNoteSub v-if="appearNote.replyId" :note="appearNote?.reply ?? null" :class="$style.replyTo"/>
+	<MkNoteSub v-if="appearNote.replyId" :note="appearNote?.reply ?? null" :class="[$style.contextNote, $style.replyTo]" :connected="!isRenote"/>
 	<div v-if="isRenote" :class="$style.renote">
 		<MkAvatar :class="$style.renoteAvatar" :user="note.user" link preview/>
 		<i class="ti ti-repeat" style="margin-right: 4px;"></i>
@@ -72,8 +72,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 						<div v-if="appearNote.user.badgeRoles" :class="$style.noteHeaderBadgeRoles">
 							<img v-for="(role, i) in appearNote.user.badgeRoles" :key="i" v-tooltip="role.name" :class="$style.noteHeaderBadgeRole" :src="role.iconUrl!"/>
 						</div>
+						<!-- [custom] Keep the server badge beside the account, matching timeline cards. -->
+						<MkInstanceTicker v-if="showTicker" :class="$style.instanceTicker" :host="appearNote.user.host" :instance="appearNote.user.instance"/>
 					</div>
-					<MkInstanceTicker v-if="showTicker" :host="appearNote.user.host" :instance="appearNote.user.instance"/>
 				</div>
 			</header>
 			<div :class="$style.noteContent">
@@ -400,7 +401,16 @@ const keymap = {
 </script>
 
 <style lang="scss" module>
+// [custom] Reserve the right side of the account row for the server label.
+.instanceTicker {
+	flex-shrink: 0;
+	max-width: 40%;
+	margin-left: auto;
+}
+
 .root {
+	--MI-noteDetailInset: 32px;
+	--MI-noteDetailAvatar: 58px;
 	position: relative;
 	transition: box-shadow 0.1s ease;
 	overflow: clip;
@@ -429,14 +439,22 @@ const keymap = {
 	}
 }
 
-.replyTo {
-	opacity: 0.7;
+.root .contextNote {
+	// [custom] Center the context avatars over the retained, larger detail avatar.
+	--MI-noteSubInsetX: calc(var(--MI-noteDetailInset) + (var(--MI-noteDetailAvatar) - var(--MI-noteSubAvatar)) / 2);
+}
+
+.root .replyTo {
+	// [custom] Disable upstream dimming to keep reply text and thread lines at full theme contrast.
+	// opacity: 0.7;
+	--MI-noteSubConnectionGap: var(--MI-noteDetailInset);
 	padding-bottom: 0;
 }
 
-.replyToMore {
-	opacity: 0.7;
-}
+// [custom] Context notes now use .contextNote without upstream dimming.
+// .replyToMore {
+// 	opacity: 0.7;
+// }
 
 .renote {
 	display: flex;
@@ -482,7 +500,7 @@ const keymap = {
 }
 
 .note {
-	padding: 32px;
+	padding: var(--MI-noteDetailInset);
 	font-size: 1.2em;
 
 	&:hover > .main > .footer > .button {
@@ -500,12 +518,24 @@ const keymap = {
 .noteHeaderAvatar {
 	display: block;
 	flex-shrink: 0;
-	width: 58px;
-	height: 58px;
+	width: var(--MI-noteDetailAvatar);
+	height: var(--MI-noteDetailAvatar);
+}
+
+.contextNote[data-note-connected] + .note > .noteHeader::before {
+	content: '';
+	position: absolute;
+	left: calc(.5 * var(--MI-noteDetailAvatar));
+	top: -1px;
+	height: max(1px, calc(50% - .5 * var(--MI-noteDetailAvatar) + 1px));
+	border-left: 2px solid var(--MI_THEME-thread, var(--MI_THEME-divider));
+	pointer-events: none;
 }
 
 .noteHeaderBody {
 	flex: 1;
+	// [custom] Allow long accounts to shrink beside the instance badge.
+	min-width: 0;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
@@ -534,16 +564,29 @@ const keymap = {
 
 .noteHeaderUsernameAndBadgeRoles {
 	display: flex;
+	// [custom] Keep the account, role icons and server badge on one row.
+	align-items: center;
 }
 
 .noteHeaderUsername {
-	margin-bottom: 2px;
+	// [custom] Disable the upstream bottom margin to center the account beside the badge.
+	// margin-bottom: 2px;
+	// [custom] Ellipsize long accounts without pushing the server badge to another row.
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 	margin-right: 0.5em;
 	line-height: 1.3;
 	word-wrap: anywhere;
 }
 
 .noteHeaderBadgeRoles {
+	// [custom] Keep role icons on one clipped row so they cannot increase the account row height.
+	flex-shrink: 0;
+	max-width: 3em;
+	white-space: nowrap;
+	overflow: hidden;
 	margin: 0 .5em 0 0;
 }
 
@@ -597,8 +640,8 @@ const keymap = {
 
 .quoteNote {
 	padding: 16px;
-	border: dashed 1px var(--MI_THEME-renote);
-	border-radius: 8px;
+	border: solid 1px var(--MI_THEME-renote);
+	border-radius: var(--MI-noteQuoteRadius);
 	overflow: clip;
 }
 
@@ -690,17 +733,13 @@ const keymap = {
 }
 
 @container (max-width: 450px) {
+	.root {
+		--MI-noteDetailInset: 16px;
+		--MI-noteDetailAvatar: 50px;
+	}
+
 	.renote {
 		padding: 8px 16px 0 16px;
-	}
-
-	.note {
-		padding: 16px;
-	}
-
-	.noteHeaderAvatar {
-		width: 50px;
-		height: 50px;
 	}
 }
 
@@ -715,11 +754,6 @@ const keymap = {
 @container (max-width: 300px) {
 	.root {
 		font-size: 0.825em;
-	}
-
-	.noteHeaderAvatar {
-		width: 50px;
-		height: 50px;
 	}
 
 	.noteFooterButton {

@@ -5,7 +5,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <template>
 <component :is="prefer.s.enablePullToRefresh ? MkPullToRefresh : 'div'" :refresher="() => reload()">
-	<div class="_spacer" :style="{ '--MI_SPACER-w': narrow ? '800px' : '1100px' }">
+	<div class="_spacer" :class="$style.root" :style="{ '--MI_SPACER-w': narrow ? '800px' : '1100px' }">
 		<div ref="rootEl" class="ftskorzw" :class="{ wide: !narrow }" style="container-type: inline-size;">
 			<div class="main _gaps">
 				<!-- TODO -->
@@ -17,7 +17,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 					<MkRemoteCaution v-if="user.host != null" :href="user.url ?? user.uri!"/>
 					<MkInfo v-if="user.host == null && user.username.includes('.')">{{ i18n.ts.isSystemAccount }}</MkInfo>
 
-					<div :key="user.id" class="main _panel">
+					<div :key="user.id" class="main _panel" :class="$style.profilePanel">
 						<div ref="bannerEl" class="banner-container">
 							<div class="banner" :style="style"></div>
 							<div class="fade"></div>
@@ -34,8 +34,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 							</div>
 							<span v-if="$i && $i.id != user.id && user.isFollowed" class="followed">{{ i18n.ts.followsYou }}</span>
 							<div class="actions">
-								<button class="menu _button" @click="menu"><i class="ti ti-dots"></i></button>
-								<MkFollowButton v-if="$i?.id != user.id" v-model:user="user" :inline="true" :transparent="false" :full="true" class="koudoku"/>
+								<button class="menu _button" :aria-label="i18n.ts.more" @click="menu"><i class="ti ti-dots"></i></button>
+								<MkFollowButton v-if="$i?.id != user.id" v-model:user="user" :inline="true" :transparent="false" :full="true" class="koudoku" :class="$style.relationshipButton"/>
 							</div>
 						</div>
 						<MkAvatar class="avatar" :user="user" indicator/>
@@ -75,6 +75,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 							<textarea
 								ref="memoTextareaEl"
 								v-model="memoDraft"
+								:aria-label="i18n.ts.memo"
 								rows="1"
 								@focus="isEditingMemo = true"
 								@blur="updateMemo"
@@ -130,16 +131,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</div>
 
 				<div class="contents _gaps">
-					<div v-if="user.pinnedNotes.length > 0" class="_gaps">
-						<MkNote v-for="note in user.pinnedNotes" :key="note.id" class="note _panel" :note="note" :pinned="true"/>
-					</div>
-					<MkInfo v-else-if="$i && $i.id === user.id">{{ i18n.ts.userPagePinTip }}</MkInfo>
+					<MkInfo v-if="user.pinnedNotes.length === 0 && $i?.id === user.id">{{ i18n.ts.userPagePinTip }}</MkInfo>
 					<template v-if="narrow">
 						<MkLazy>
-							<XFiles :key="user.id" :user="user" @showMore="emit('showMoreFiles')"/>
+							<XFiles :key="user.id" :user="user" collapsed @showMore="emit('showMoreFiles')"/>
 						</MkLazy>
 						<MkLazy>
-							<XActivity :key="user.id" :user="user"/>
+							<XActivity :key="user.id" :user="user" collapsed/>
 						</MkLazy>
 					</template>
 					<div v-if="!disableNotes">
@@ -162,7 +160,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 import { defineAsyncComponent, computed, onMounted, onUnmounted, onActivated, onDeactivated, nextTick, watch, ref, useTemplateRef } from 'vue';
 import * as Misskey from 'misskey-js';
 import { getScrollContainer } from '@@/js/scroll.js';
-import MkNote from '@/components/MkNote.vue';
 import MkFollowButton from '@/components/MkFollowButton.vue';
 import MkAccountMoved from '@/components/MkAccountMoved.vue';
 import MkFukidashi from '@/components/MkFukidashi.vue';
@@ -412,7 +409,7 @@ onDeactivated(disposeBannerParallaxResizeObserver);
 						color: #fff;
 						background: rgba(0, 0, 0, 0.7);
 						font-size: 0.7em;
-						border-radius: 6px;
+						border-radius: var(--MI-radius);
 					}
 
 					> .actions {
@@ -423,7 +420,7 @@ onDeactivated(disposeBannerParallaxResizeObserver);
 						backdrop-filter: var(--MI-blur, blur(8px));
 						background: rgba(0, 0, 0, 0.2);
 						padding: 8px;
-						border-radius: 24px;
+						border-radius: var(--MI-radius);
 
 						> .menu {
 							vertical-align: bottom;
@@ -435,7 +432,7 @@ onDeactivated(disposeBannerParallaxResizeObserver);
 						}
 
 						> .koudoku {
-							margin-left: 4px;
+							margin-left: 8px;
 							vertical-align: bottom;
 						}
 					}
@@ -476,7 +473,7 @@ onDeactivated(disposeBannerParallaxResizeObserver);
 								color: #fff;
 								-webkit-backdrop-filter: var(--MI-blur, blur(8px));
 								backdrop-filter: var(--MI-blur, blur(8px));
-								border-radius: 24px;
+								border-radius: var(--MI-radius);
 								padding: 4px 8px;
 								font-size: 80%;
 							}
@@ -508,7 +505,7 @@ onDeactivated(disposeBannerParallaxResizeObserver);
 					z-index: 2;
 					width: 120px;
 					height: 120px;
-					box-shadow: 1px 1px 3px rgba(#000, 0.2);
+					filter: drop-shadow(1px 1px 3px var(--MI_THEME-shadow));
 				}
 
 				> .followedMessage {
@@ -536,7 +533,7 @@ onDeactivated(disposeBannerParallaxResizeObserver);
 
 					> .role {
 						border: solid 1px var(--color, var(--MI_THEME-divider));
-						border-radius: 999px;
+						border-radius: var(--MI-radius);
 						margin-right: 4px;
 						padding: 3px 8px;
 					}
@@ -551,7 +548,7 @@ onDeactivated(disposeBannerParallaxResizeObserver);
 					background: transparent;
 					color: var(--MI_THEME-fg);
 					border: 1px solid var(--MI_THEME-divider);
-					border-radius: 8px;
+					border-radius: var(--MI-radius);
 					padding: 8px;
 					line-height: 0;
 
@@ -781,10 +778,21 @@ onDeactivated(disposeBannerParallaxResizeObserver);
 </style>
 
 <style lang="scss" module>
-.tl {
-	background: var(--MI_THEME-bg);
-	border-radius: var(--MI-radius);
-	overflow: clip;
+// [custom] Sharkey's default corners are local to this profile, not the global navigation.
+.root {
+	--MI-radius: 5px;
+
+	.profilePanel {
+		background: color-mix(in srgb, var(--MI_THEME-panel) 65%, transparent);
+
+		:global(.banner) {
+			box-shadow: 0 0 128px var(--MI_THEME-shadow) inset;
+		}
+	}
+
+	.relationshipButton {
+		border-radius: var(--MI-radius);
+	}
 }
 
 .verifiedLink {
