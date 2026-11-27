@@ -11,7 +11,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	:class="[$style.root, { [$style.showActionsOnlyHover]: prefer.s.showNoteActionsOnlyHover, [$style.skipRender]: prefer.s.skipNoteRender }]"
 	tabindex="0"
 >
-	<MkNoteSub v-if="appearNote.replyId && !renoteCollapsed" :note="appearNote?.reply ?? null" :class="$style.replyTo"/>
+	<MkNoteSub v-if="appearNote.replyId && !renoteCollapsed" :note="appearNote?.reply ?? null" :class="$style.replyTo" :connected="!isRenote && !pinned"/>
 	<div v-if="pinned" :class="$style.tip"><i class="ti ti-pin"></i> {{ i18n.ts.pinnedNote }}</div>
 	<div v-if="isRenote" :class="$style.renote">
 		<div v-if="note.channel" :class="$style.colorBar" :style="{ background: note.channel.color }"></div>
@@ -47,10 +47,15 @@ SPDX-License-Identifier: AGPL-3.0-only
 	</div>
 	<article v-else :class="$style.article" @contextmenu.stop="onContextmenu">
 		<div v-if="appearNote.channel" :class="$style.colorBar" :style="{ background: appearNote.channel.color }"></div>
-		<MkAvatar :class="[$style.avatar, prefer.s.useStickyIcons ? $style.useSticky : null]" :user="appearNote.user" :link="!mock" :preview="!mock"/>
+		<div :class="$style.cardHeader">
+			<MkAvatar :class="$style.avatar" :user="appearNote.user" :link="!mock" :preview="!mock"/>
+			<MkNoteHeader :note="appearNote" card :class="$style.cardAuthor">
+				<template v-if="showTicker" #metadata>
+					<MkInstanceTicker :host="appearNote.user.host" :instance="appearNote.user.instance"/>
+				</template>
+			</MkNoteHeader>
+		</div>
 		<div :class="$style.main">
-			<MkNoteHeader :note="appearNote" :mini="true"/>
-			<MkInstanceTicker v-if="showTicker" :host="appearNote.user.host" :instance="appearNote.user.instance"/>
 			<div style="container-type: inline-size;">
 				<p v-if="appearNote.cw != null" :class="$style.cw">
 					<Mfm
@@ -77,6 +82,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 							:enableEmojiMenu="true"
 							:enableEmojiMenuReaction="true"
 							class="_selectable"
+							:class="$style.noteBody"
 						/>
 						<div v-if="translating || translation" :class="$style.translation">
 							<MkLoading v-if="translating" mini/>
@@ -412,14 +418,26 @@ const keymap = {
 
 	&:hover > .article > .main > .footer > .footerButton {
 		color: var(--MI_THEME-fg);
+
+		// [custom] Keep note-wide highlighting, and accent only the hovered, enabled action.
+		@media (hover: hover) {
+			&:not(:disabled):hover {
+				color: var(--MI_THEME-accent);
+			}
+		}
 	}
 
 	&.showActionsOnlyHover {
+		// [custom] Use the default card padding when the action bar floats above it.
+		--MI-noteTimelinePaddingBottom: initial;
+
 		.footer {
 			visibility: hidden;
 			position: absolute;
 			top: 12px;
 			right: 12px;
+			max-width: calc(100% - 24px);
+			box-sizing: border-box;
 			padding: 0 4px;
 			margin-bottom: 0 !important;
 			background: var(--MI_THEME-popup);
@@ -429,10 +447,6 @@ const keymap = {
 
 		.footerButton {
 			font-size: 90%;
-
-			&:not(:last-child) {
-				margin-right: 0;
-			}
 		}
 	}
 
@@ -465,7 +479,8 @@ const keymap = {
 }
 
 .replyTo {
-	opacity: 0.7;
+	// [custom] Disable upstream dimming to keep reply text and thread lines at full theme contrast.
+	// opacity: 0.7;
 	padding-bottom: 0;
 }
 
@@ -550,10 +565,35 @@ const keymap = {
 	}
 }
 
+.cardHeader {
+	--MI-noteCardAvatarSize: 48px;
+	display: flex;
+	align-items: center;
+	position: relative;
+	margin-bottom: 10px;
+}
+
+// [custom] Connect a visible reply summary to the centered avatar when the author header wraps.
+.replyTo[data-note-connected] + .article > .cardHeader::before {
+	content: '';
+	position: absolute;
+	left: calc(.5 * var(--MI-noteCardAvatarSize));
+	top: -1px;
+	height: calc(50% - .5 * var(--MI-noteCardAvatarSize) + 1px);
+	border-left: 2px solid var(--MI_THEME-thread, var(--MI_THEME-divider));
+	pointer-events: none;
+}
+
+.cardAuthor {
+	flex: 1;
+	min-width: 0;
+}
+
 .article {
 	position: relative;
-	display: flex;
-	padding: 28px 32px;
+	display: block;
+	// [custom] Use the enclosing timeline's bottom padding when specified.
+	padding: 18px 32px var(--MI-noteTimelinePaddingBottom, 18px);
 }
 
 .colorBar {
@@ -570,17 +610,11 @@ const keymap = {
 	flex-shrink: 0;
 	display: block !important;
 	margin: 0 14px 0 0;
-	width: 58px;
-	height: 58px;
-
-	&.useSticky {
-		position: sticky !important;
-		top: calc(22px + var(--MI-stickyTop, 0px));
-	}
+	width: var(--MI-noteCardAvatarSize);
+	height: var(--MI-noteCardAvatarSize);
 }
 
 .main {
-	flex: 1;
 	min-width: 0;
 }
 
@@ -642,6 +676,11 @@ const keymap = {
 	overflow-wrap: break-word;
 }
 
+// [custom] Use consistent leading for note prose in every language, without changing author metadata.
+.noteBody {
+	line-height: 1.4;
+}
+
 .replyIcon {
 	color: var(--MI_THEME-accent);
 	margin-right: 0.5em;
@@ -668,8 +707,9 @@ const keymap = {
 
 .quoteNote {
 	padding: 16px;
-	border: dashed 1px var(--MI_THEME-renote);
-	border-radius: 8px;
+	// [custom] Keep the quote border as subtle as other panel dividers.
+	border: solid 1px var(--MI_THEME-divider);
+	border-radius: var(--MI-noteQuoteRadius);
 	overflow: clip;
 }
 
@@ -679,6 +719,11 @@ const keymap = {
 }
 
 .footer {
+	display: flex;
+	align-items: center;
+	gap: var(--MI-margin);
+	margin-top: 0.4em;
+	overflow-x: auto;
 	margin-bottom: -14px;
 }
 
@@ -687,9 +732,7 @@ const keymap = {
 	padding: 8px;
 	color: color-mix(in srgb, var(--MI_THEME-panel), var(--MI_THEME-fg) 70%); // opacityなど不透明度で表現するとレンダリングパフォーマンスに影響するので通常の色の混合で代用
 
-	&:not(:last-child) {
-		margin-right: 28px;
-	}
+	flex-shrink: 0;
 
 	&:hover {
 		color: var(--MI_THEME-fgHighlighted);
@@ -711,12 +754,12 @@ const keymap = {
 	}
 
 	.article {
-		padding: 24px 26px;
+		// [custom] Keep tablet spacing consistent with the desktop timeline.
+		padding: 18px 26px;
 	}
 
-	.avatar {
-		width: 50px;
-		height: 50px;
+	.cardHeader {
+		--MI-noteCardAvatarSize: 46px;
 	}
 }
 
@@ -730,7 +773,8 @@ const keymap = {
 	}
 
 	.article {
-		padding: 20px 22px;
+		// [custom] The <=480px mobile rule below retains its original 14px padding.
+		padding: 18px 22px;
 	}
 
 	.footer {
@@ -758,56 +802,21 @@ const keymap = {
 }
 
 @container (max-width: 450px) {
+	.cardHeader {
+		--MI-noteCardAvatarSize: 44px;
+	}
+
 	.avatar {
 		margin: 0 10px 0 0;
-		width: 46px;
-		height: 46px;
-
-		&.useSticky {
-			top: calc(14px + var(--MI-stickyTop, 0px));
-		}
-	}
-}
-
-@container (max-width: 400px) {
-	.root:not(.showActionsOnlyHover) {
-		.footerButton {
-			&:not(:last-child) {
-				margin-right: 18px;
-			}
-		}
 	}
 }
 
 @container (max-width: 350px) {
-	.root:not(.showActionsOnlyHover) {
-		.footerButton {
-			&:not(:last-child) {
-				margin-right: 12px;
-			}
-		}
-	}
-
 	.colorBar {
 		top: 6px;
 		left: 6px;
 		width: 4px;
 		height: calc(100% - 12px);
-	}
-}
-
-@container (max-width: 300px) {
-	.avatar {
-		width: 44px;
-		height: 44px;
-	}
-
-	.root:not(.showActionsOnlyHover) {
-		.footerButton {
-			&:not(:last-child) {
-				margin-right: 8px;
-			}
-		}
 	}
 }
 

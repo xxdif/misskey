@@ -1,0 +1,25 @@
+/*
+ * SPDX-FileCopyrightText: syuilo and misskey-project
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+// [custom] Share the profile and standalone note timeline styles.
+.tab {
+	margin-bottom: 2.5px;
+	padding: 2.5px 0;
+	background: var(--MI_THEME-bg);
+	border-radius: var(--MI-radius);
+	overflow-x: auto;
+
+	> button {
+		border-radius: var(--MI-radius);
+		margin-inline: 0.4rem;
+		white-space: nowrap;
+	}
+}
+
+.tl {
+	background: var(--MI_THEME-bg);
+	border-radius: var(--MI-radius);
+	overflow: clip;
+}

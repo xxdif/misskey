@@ -61,7 +61,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<i v-if="store.r.realtimeMode.value" class="ti ti-bolt ti-fw"></i>
 				<i v-else class="ti ti-bolt-off ti-fw"></i>
 			</button>
-			<button v-tooltip.noDelay.right="i18n.ts.note" class="_button" :class="[$style.post]" data-testid="open-post-form" @click="() => { os.post(); }">
+			<button v-tooltip.noDelay.right="i18n.ts.note" class="_button" :class="[$style.post, { [$style.darkerPostHover]: useDarkerPostHover }]" data-testid="open-post-form" @click="() => { os.post(); }">
 				<i class="ti ti-pencil ti-fw" :class="$style.postIcon"></i><span :class="$style.postText">{{ i18n.ts.note }}</span>
 			</button>
 			<button v-if="$i != null" v-tooltip.noDelay.right="`${i18n.ts.account}: @${$i.username}`" class="_button" :class="[$style.account]" @click="openAccountMenu">
@@ -104,7 +104,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 </template>
 
 <script lang="ts" setup>
-import { computed, defineAsyncComponent, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, onScopeDispose, ref, watch } from 'vue';
+import lightAmberRadio from '@@/themes/l-amber-radio.json5';
+import lightGrapeCandy from '@@/themes/l-grape-candy.json5';
+import lightLimePop from '@@/themes/l-lime-pop.json5';
+import lightPeachSoda from '@@/themes/l-peach-soda.json5';
+import lightSkyClub from '@@/themes/l-sky-club.json5';
 import { openInstanceMenu } from './common.js';
 import * as os from '@/os.js';
 import { navbarItemDef } from '@/navbar.js';
@@ -116,6 +121,7 @@ import { useRouter } from '@/router.js';
 import { prefer } from '@/preferences.js';
 import { getAccountMenu } from '@/accounts.js';
 import { $i } from '@/i.js';
+import { themeManager } from '@/theme.js';
 
 const router = useRouter();
 
@@ -132,6 +138,19 @@ const forceIconOnly = ref(!props.asDrawer && window.innerWidth <= 1279);
 const iconOnly = computed(() => {
 	return !props.asDrawer && (forceIconOnly.value || (store.r.menuDisplay.value === 'sideIcon'));
 });
+
+// [custom] Track the selected fork theme by ID so saved theme copies get the same hover treatment.
+const darkerPostHoverThemeIds = new Set([lightAmberRadio.id, lightGrapeCandy.id, lightLimePop.id, lightPeachSoda.id, lightSkyClub.id]);
+const useDarkerPostHover = ref(false);
+
+function updatePostHoverTheme() {
+	const theme = themeManager.currentTheme;
+	useDarkerPostHover.value = theme?.base === 'light' && darkerPostHoverThemeIds.has(theme.id);
+}
+
+updatePostHoverTheme();
+themeManager.on('themeChanging', updatePostHoverTheme);
+onScopeDispose(() => themeManager.off('themeChanging', updatePostHoverTheme));
 
 const otherMenuItemIndicated = computed(() => {
 	for (const def in navbarItemDef) {
@@ -488,6 +507,11 @@ function menuEdit() {
 			&::before {
 				background: hsl(from var(--MI_THEME-accent) h s calc(l + 10));
 			}
+
+			// [custom] Darken the post gradient's first color to retain light-text contrast.
+			&.darkerPostHover::before {
+				background: hsl(from var(--MI_THEME-buttonGradateA) h s calc(l - 8));
+			}
 		}
 	}
 
@@ -615,7 +639,8 @@ function menuEdit() {
 
 	.itemText {
 		position: relative;
-		font-size: 0.9em;
+		// [custom] Use the base font size for expanded sidebar labels.
+		// font-size: 0.9em;
 	}
 
 	.subButtons {

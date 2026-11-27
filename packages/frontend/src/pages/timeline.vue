@@ -13,7 +13,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<MkStreamingNotesTimeline
 			ref="tlComponent"
 			:key="src + withRenotes + withReplies + onlyFiles + withSensitive"
-			:class="$style.tl"
+			:class="[$style.tl, { [$style.basicTimeline]: isBasicTimeline(src) }]"
 			:src="(src.split(':')[0] as (BasicTimelineType | 'list'))"
 			:list="src.split(':')[1]"
 			:withRenotes="withRenotes"
@@ -332,5 +332,12 @@ definePage(() => ({
 	background: var(--MI_THEME-bg);
 	border-radius: var(--MI-radius);
 	overflow: clip;
+}
+
+// [custom] Match upstream spacing on the built-in timelines for desktop pointers.
+.basicTimeline {
+	@media (hover: hover) and (pointer: fine) {
+		--MI-noteTimelinePaddingBottom: 28px;
+	}
 }
 </style>

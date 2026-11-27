@@ -61,14 +61,5 @@ const notesPaginator = markRaw(new Paginator('users/notes', {
 </script>
 
 <style lang="scss" module>
-.tab {
-	padding: calc(var(--MI-margin) / 2) 0;
-	background: var(--MI_THEME-bg);
-}
-
-.tl {
-	background: var(--MI_THEME-bg);
-	border-radius: var(--MI-radius);
-	overflow: clip;
-}
+@use './note-timeline';
 </style>

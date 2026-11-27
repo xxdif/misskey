@@ -185,7 +185,8 @@ export async function mainBoot() {
 		if ($i.followersCount >= 500) claimAchievement('followers500');
 		if ($i.followersCount >= 1000) claimAchievement('followers1000');
 
-		const createdAt = new Date($i.createdAt);
+		// [custom] The account age check below only served the disabled donation popup.
+		// const createdAt = new Date($i.createdAt);
 		const createdAtThreeYearsLater = new Date($i.createdAt);
 		createdAtThreeYearsLater.setFullYear(createdAtThreeYearsLater.getFullYear() + 3);
 		if (now >= createdAtThreeYearsLater) {
@@ -274,6 +275,7 @@ export async function mainBoot() {
 		//}
 		//miLocalStorage.setItem('lastUsed', Date.now().toString());
 
+		/* [custom] Disable the automatic donation popup during client startup.
 		const latestDonationInfoShownAt = miLocalStorage.getItem('latestDonationInfoShownAt');
 		const neverShowDonationInfo = miLocalStorage.getItem('neverShowDonationInfo');
 		if (neverShowDonationInfo !== 'true' && (createdAt.getTime() < (Date.now() - (1000 * 60 * 60 * 24 * 3))) && !window.location.pathname.startsWith('/miauth')) {
@@ -283,6 +285,8 @@ export async function mainBoot() {
 				});
 			}
 		}
+
+		*/
 
 		const modifiedVersionMustProminentlyOfferInAgplV3Section13Read = miLocalStorage.getItem('modifiedVersionMustProminentlyOfferInAgplV3Section13Read');
 		if (modifiedVersionMustProminentlyOfferInAgplV3Section13Read !== 'true' && instance.repositoryUrl !== 'https://github.com/misskey-dev/misskey') {

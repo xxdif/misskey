@@ -36,6 +36,8 @@ const props = defineProps<{
 }>();
 
 const tab = ref<'featured' | 'notes' | 'all' | 'files'>('all');
+// [custom] Refreshing profile fields must not retrigger pagination for the same user.
+const userId = computed(() => props.user.id);
 
 const featuredPaginator = markRaw(new Paginator('users/featured-notes', {
 	limit: 10,
@@ -47,7 +49,7 @@ const featuredPaginator = markRaw(new Paginator('users/featured-notes', {
 const notesPaginator = markRaw(new Paginator('users/notes', {
 	limit: 10,
 	computedParams: computed(() => ({
-		userId: props.user.id,
+		userId: userId.value,
 		withRenotes: tab.value === 'all',
 		withReplies: tab.value === 'all',
 		withChannelNotes: tab.value === 'all',
@@ -61,14 +63,5 @@ defineExpose({
 </script>
 
 <style lang="scss" module>
-.tab {
-	padding: calc(var(--MI-margin) / 2) 0;
-	background: var(--MI_THEME-bg);
-}
-
-.tl {
-	background: var(--MI_THEME-bg);
-	border-radius: var(--MI-radius);
-	overflow: clip;
-}
+@use './note-timeline';
 </style>

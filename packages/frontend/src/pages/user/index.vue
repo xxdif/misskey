@@ -4,7 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-<PageWithHeader v-model:tab="tab" :tabs="headerTabs" :actions="headerActions" :swipable="true">
+<PageWithHeader v-model:tab="tab" :class="$style.root" :tabs="headerTabs" :actions="headerActions" :swipable="true">
 	<div v-if="user">
 		<XHome v-if="tab === 'home'" :user="user" :refreshUser="refreshUser" @showMoreFiles="() => { tab = 'files'; }"/>
 		<XNotes v-else-if="tab === 'notes'" :user="user"/>
@@ -163,3 +163,10 @@ definePage(() => ({
 	} : {},
 }));
 </script>
+
+<style lang="scss" module>
+// [custom] Keep Sharkey's corner size within profile pages.
+.root {
+	--MI-radius: 5px;
+}
+</style>
